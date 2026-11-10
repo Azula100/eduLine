@@ -1,0 +1,64 @@
+.page { min-height: 100vh; background: #fff; position: relative; overflow: hidden; color: #0d2a6b; }
+
+/* Цайвар цэнхэр дэвсгэр хэлбэрүүд */
+.blobTL { position: absolute; top: -140px; left: -120px; width: 420px; height: 300px;
+  background: #e8f1fb; border-radius: 0 0 60% 0; transform: rotate(-8deg); }
+.blobTR { position: absolute; top: -90px; right: -120px; width: 460px; height: 240px;
+  background: #eaf3fc; border-radius: 0 0 0 70%; }
+.blobBottom { position: absolute; bottom: -90px; left: -80px; width: 62%; height: 200px;
+  background: #eef5fd; border-radius: 50%; }
+
+/* Дээд цэс */
+.nav { position: relative; z-index: 2; display: flex; align-items: center; gap: 28px;
+  padding: 26px 6%; }
+.logo { font-weight: 800; letter-spacing: 1px; color: #0d2a6b; text-decoration: none; font-size: 15px; }
+.navLink { color: #0d2a6b; text-decoration: none; font-size: 12px; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase; }
+.navLink:hover { color: #2f6fe4; }
+.spacer { flex: 1; }
+.search { display: flex; align-items: center; background: #e6effa; border-radius: 999px;
+  padding: 4px 4px 4px 18px; width: 300px; }
+.search input { border: 0; background: transparent; outline: none; flex: 1; font-size: 13px; color: #0d2a6b; }
+.searchBtn { width: 28px; height: 28px; border-radius: 50%; background: #0d4bb5; border: 0;
+  display: grid; place-items: center; cursor: pointer; }
+.burger { display: grid; gap: 4px; cursor: pointer; background: none; border: 0; padding: 0; }
+.burger span { display: block; height: 2px; background: #0d4bb5; border-radius: 2px; }
+.burger span:nth-child(1) { width: 18px; }
+.burger span:nth-child(2) { width: 14px; margin-left: auto; }
+.burger span:nth-child(3) { width: 18px; }
+
+/* Нүүр хэсэг */
+.hero { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1.15fr;
+  gap: 30px; align-items: center; padding: 30px 6% 70px; max-width: 1280px; margin: 0 auto; }
+.title { font-size: clamp(2.2rem, 5vw, 3.7rem); line-height: 1.08; font-weight: 800;
+  text-transform: uppercase; color: #0d3a8c; margin: 0 0 20px; }
+.lead { color: #8a9ab8; font-size: 13px; line-height: 1.7; max-width: 440px; margin-bottom: 28px; }
+.btn { display: inline-block; background: #0d4bb5; color: #fff; text-decoration: none;
+  border: 0; border-radius: 999px; padding: 13px 38px; font-weight: 700; font-size: 13px;
+  letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  box-shadow: 0 8px 18px rgba(13, 75, 181, .25); transition: transform .15s; }
+.btn:hover { transform: translateY(-2px); color: #fff; }
+.btnGhost { background: transparent; color: #0d4bb5; box-shadow: none; border: 2px solid #0d4bb5; margin-left: 12px; }
+.btnGhost:hover { color: #0d4bb5; }
+.art svg { width: 100%; height: auto; display: block; }
+
+/* Нэвтрэх, бүртгүүлэх карт */
+.authWrap { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr;
+  align-items: center; gap: 30px; padding: 10px 6% 60px; max-width: 1200px; margin: 0 auto; }
+.card { background: #fff; border-radius: 22px; padding: 38px 34px; max-width: 420px; width: 100%;
+  margin: 0 auto; box-shadow: 0 20px 50px rgba(13, 75, 181, .12); }
+.card h2 { font-weight: 800; text-transform: uppercase; color: #0d3a8c; font-size: 1.6rem; margin-bottom: 20px; }
+.input { width: 100%; border: 0; background: #eef4fc; border-radius: 999px; padding: 13px 20px;
+  margin-bottom: 14px; outline: none; font-size: 14px; color: #0d2a6b; }
+.input:focus { box-shadow: 0 0 0 2px #2f6fe4; }
+.error { background: #fdeaea; color: #b42318; border-radius: 12px; padding: 10px 14px;
+  font-size: 13px; margin-bottom: 14px; }
+.full { width: 100%; text-align: center; }
+.small { font-size: 13px; color: #8a9ab8; margin-top: 16px; text-align: center; }
+.small a { color: #0d4bb5; font-weight: 600; text-decoration: none; }
+
+@media (max-width: 900px) {
+  .hero, .authWrap { grid-template-columns: 1fr; }
+  .search { display: none; }
+  .art { order: -1; }
+}
