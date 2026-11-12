@@ -17,6 +17,7 @@ export default function Admin() {
         <a href="/admin/surgalt" className="list-group-item list-group-item-action">
           Сургалт удирдах
         </a>
+        <a href="/admin/course" className="list-group-item list-group-item-action">Анги удирдах</a>
       </div>
     </div>
   );
