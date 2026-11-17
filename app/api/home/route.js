@@ -3,14 +3,18 @@ import { listSurgalt } from "@/lib/surgalt";
 import { listCourse } from "@/lib/course";
 
 export async function GET() {
+  const out = { surgalt: [], classes: [], teachers: [] };
+
+  try { out.surgalt = await listSurgalt(); }
+  catch (e) { console.error("HOME surgalt:", e); out.surgaltError = e.message; }
+
+  try { out.classes = await listCourse({ onlyActive: true }); }
+  catch (e) { console.error("HOME course:", e); out.classesError = e.message; }
+
   try {
-    const surgalt = await listSurgalt();
-    const classes = (await listCourse()).filter((c) => c.status !== "CLOSED");
-    const [teachers] = await db.query(
-      "SELECT userID, LName, FName, utas FROM users WHERE userStatus='T'");
-    return Response.json({ surgalt, classes, teachers });
-  } catch (e) {
-    console.error("HOME:", e);
-    return Response.json({ error: "Серверийн алдаа: " + e.message }, { status: 500 });
-  }
+    const [t] = await db.query("SELECT userID, LName, FName, utas FROM users WHERE userStatus='T'");
+    out.teachers = t;
+  } catch (e) { console.error("HOME teachers:", e); out.teachersError = e.message; }
+
+  return Response.json(out);
 }

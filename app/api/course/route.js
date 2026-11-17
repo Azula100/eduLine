@@ -1,14 +1,5 @@
 import { requireRole, deny } from "@/lib/guard";
-import { listCourse, addCourse } from "@/lib/course";
-
-function check(b) {
-  if (!b.surgaltID) return "Сургалтаа сонгоно уу";
-  if (!b.startDate) return "Эхлэх огноог оруулна уу";
-  if (!b.schedule?.trim()) return "Хуваарийг оруулна уу";
-  if (!Number.isInteger(Number(b.capacity)) || Number(b.capacity) < 1)
-    return "Багтаамж 1-ээс их бүхэл тоо байх ёстой";
-  return null;
-}
+import { listCourse, addCourse, checkCourse, cleanCourse } from "@/lib/course";
 
 export async function GET() {
   try {
@@ -26,9 +17,9 @@ export async function POST(req) {
     const s = await requireRole(["A", "T"]);
     if (!s) return deny();
     const b = await req.json();
-    const bad = check(b);
+    const bad = checkCourse(b);
     if (bad) return Response.json({ error: bad }, { status: 400 });
-    await addCourse({ ...b, schedule: b.schedule.trim(), capacity: Number(b.capacity) });
+    await addCourse(cleanCourse(b));
     return Response.json({ ok: true }, { status: 201 });
   } catch (e) {
     console.error("COURSE ADD:", e);

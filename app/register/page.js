@@ -2,28 +2,47 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import s from "../theme.module.css";
-import Illustration from "@/components/illustration";
 
-const EMPTY = { lname: "", fname: "", rd: "", utas: "", email: "", password: "", password2: "", sumID: "" };
+const EMPTY = { lname: "", fname: "", rd: "", utas: "", email: "", password: "", password2: "" };
 
 export default function Register() {
   const [f, setF] = useState(EMPTY);
+  const [aimags, setAimags] = useState([]);
   const [sums, setSums] = useState([]);
+  const [aimagID, setAimagID] = useState("");
+  const [sumID, setSumID] = useState("");
   const [err, setErr] = useState("");
   const [ok, setOk] = useState(false);
 
+  // Аймгийн жагсаалт
   useEffect(() => {
-    fetch("/api/sum")
-      .then((r) => r.json())
-      .then((d) => Array.isArray(d) && setSums(d))
-      .catch(() => {});
+    fetch("/api/aimag").then((r) => r.json())
+      .then((d) => Array.isArray(d) && setAimags(d))
+      .catch(() => setErr("Аймгийн жагсаалт татаж чадсангүй"));
   }, []);
+
+  // Аймаг солигдоход тэр аймгийн сумууд
+  async function pickAimag(id) {
+    setAimagID(id);
+    setSumID("");
+    setSums([]);
+    if (!id) return;
+    try {
+      const r = await fetch(`/api/sum?aimagID=${id}`);
+      const d = await r.json();
+      if (Array.isArray(d)) setSums(d);
+    } catch {
+      setErr("Сумын жагсаалт татаж чадсангүй");
+    }
+  }
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   async function submit(e) {
     e.preventDefault();
     setErr("");
+    if (!aimagID) return setErr("Аймгаа сонгоно уу");
+    if (!sumID) return setErr("Сумаа сонгоно уу");
     if (f.password !== f.password2) return setErr("Нууц үг таарахгүй байна");
     try {
       const r = await fetch("/api/auth/register", {
@@ -31,7 +50,7 @@ export default function Register() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lname: f.lname, fname: f.fname, rd: f.rd, utas: f.utas,
-          email: f.email, password: f.password, sumID: f.sumID,
+          email: f.email, password: f.password, sumID,
         }),
       });
       const t = await r.text();
@@ -45,53 +64,50 @@ export default function Register() {
   }
 
   return (
-    <main className={s.page}>
-      <div className={s.blobTL} />
-      <div className={s.blobTR} />
-      <div className={s.blobBottom} />
+    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center",
+                   background: "#f4f8fe", padding: "30px 20px" }}>
+      <form onSubmit={submit} className={s.card}>
+        <h2>Бүртгүүлэх</h2>
 
-      <nav className={s.nav}>
-        <Link href="/" className={s.logo}>EDULINE</Link>
-        <Link href="/" className={s.navLink}>Нүүр</Link>
-        <span className={s.spacer} />
-        <Link href="/login" className={s.navLink}>Нэвтрэх</Link>
-      </nav>
+        {err && <div className={s.error}>{err}</div>}
+        {ok && (
+          <div className={s.error} style={{ background: "#e6f7ee", color: "#067647" }}>
+            Амжилттай бүртгэгдлээ. Нэвтрэх хуудас руу шилжиж байна...
+          </div>
+        )}
 
-      <section className={s.authWrap}>
-        <form onSubmit={submit} className={s.card}>
-          <h2>Бүртгүүлэх</h2>
+        <input className={s.input} placeholder="Овог" value={f.lname} onChange={set("lname")} required />
+        <input className={s.input} placeholder="Нэр" value={f.fname} onChange={set("fname")} required />
+        <input className={s.input} placeholder="Регистр (жишээ: АА12345678)" maxLength={10}
+               value={f.rd} onChange={set("rd")} required />
+        <input className={s.input} placeholder="Утас" inputMode="numeric" maxLength={8}
+               value={f.utas} onChange={set("utas")} />
 
-          {err && <div className={s.error}>{err}</div>}
-          {ok && (
-            <div className={s.error} style={{ background: "#e6f7ee", color: "#067647" }}>
-              Амжилттай бүртгэгдлээ. Нэвтрэх хуудас руу шилжиж байна...
-            </div>
-          )}
+        <select className={s.input} value={aimagID} onChange={(e) => pickAimag(e.target.value)} required>
+          <option value="">Аймаг, хот сонгох</option>
+          {aimags.map((a) => (
+            <option key={a.aimagID} value={a.aimagID}>{a.name}</option>
+          ))}
+        </select>
 
-          <input className={s.input} placeholder="Овог" value={f.lname} onChange={set("lname")} required />
-          <input className={s.input} placeholder="Нэр" value={f.fname} onChange={set("fname")} required />
-          <input className={s.input} placeholder="Регистр (жишээ: АА12345678)" maxLength={10}
-                 value={f.rd} onChange={set("rd")} required />
-          <input className={s.input} placeholder="Утас" inputMode="numeric" maxLength={8}
-                 value={f.utas} onChange={set("utas")} />
-          <select className={s.input} value={f.sumID} onChange={set("sumID")} required>
-            <option value="">Сум, дүүрэг сонгох</option>
-            {sums.map((x) => (
-              <option key={x.sumID} value={x.sumID}>{x.name}</option>
-            ))}
-          </select>
-          <input className={s.input} type="email" placeholder="Имэйл" value={f.email}
-                 onChange={set("email")} required />
-          <input className={s.input} type="password" placeholder="Нууц үг (6+ тэмдэгт)"
-                 value={f.password} onChange={set("password")} required />
-          <input className={s.input} type="password" placeholder="Нууц үг давтах"
-                 value={f.password2} onChange={set("password2")} required />
+        <select className={s.input} value={sumID} onChange={(e) => setSumID(e.target.value)}
+                disabled={!aimagID} required>
+          <option value="">{aimagID ? "Сум, дүүрэг сонгох" : "Эхлээд аймгаа сонгоно уу"}</option>
+          {sums.map((x) => (
+            <option key={x.sumID} value={x.sumID}>{x.name}</option>
+          ))}
+        </select>
 
-          <button className={`${s.btn} ${s.full}`} disabled={ok}>Бүртгүүлэх</button>
-          <p className={s.small}>Бүртгэлтэй юу? <Link href="/login">Нэвтрэх</Link></p>
-        </form>
-        <div className={s.art}><Illustration /></div>
-      </section>
+        <input className={s.input} type="email" placeholder="Имэйл" value={f.email}
+               onChange={set("email")} required />
+        <input className={s.input} type="password" placeholder="Нууц үг (6+ тэмдэгт)"
+               value={f.password} onChange={set("password")} required />
+        <input className={s.input} type="password" placeholder="Нууц үг давтах"
+               value={f.password2} onChange={set("password2")} required />
+
+        <button className={`${s.btn} ${s.full}`} disabled={ok}>Бүртгүүлэх</button>
+        <p className={s.small}>Бүртгэлтэй юу? <Link href="/login">Нэвтрэх</Link></p>
+      </form>
     </main>
   );
 }

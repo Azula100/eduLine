@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 
-const EMPTY = { id: null, surgaltID: "", startDate: "", schedule: "", capacity: "" };
-const STATUS_LABEL = { OPEN: "Бүртгэл нээлттэй", ACTIVE: "Идэвхтэй", CLOSED: "Хаагдсан" };
-const STATUS_COLOR = { OPEN: "success", ACTIVE: "primary", CLOSED: "secondary" };
+const EMPTY = { id: null, surgaltID: "", courseName: "", courseDetails: "", price: "",
+                startDate: "", finishDate: "", hugatsaa: "", suudalToo: "" };
 
 export default function AdminCourse() {
   const [list, setList] = useState([]);
@@ -43,20 +42,21 @@ export default function AdminCourse() {
     setF(EMPTY); load();
   }
 
-  async function changeStatus(c, status) {
+  async function toggle(c) {
     setErr(""); setMsg("");
+    const next = Number(c.status) === 1 ? 0 : 1;
     const r = await fetch(`/api/course/${c.courseID}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status: next }),
     });
     const d = await readJson(r);
     if (!r.ok) return setErr(d.error || `Алдаа (${r.status})`);
-    setMsg("Төлөв өөрчлөгдлөө"); load();
+    setMsg(next === 1 ? "Анги идэвхжлээ" : "Анги идэвхгүй боллоо"); load();
   }
 
   async function del(c) {
-    if (!confirm(`#${c.courseID} ангийг устгах уу?`)) return;
+    if (!confirm(`"${c.courseName}" ангийг устгах уу?`)) return;
     setErr(""); setMsg("");
     const r = await fetch(`/api/course/${c.courseID}`, { method: "DELETE" });
     const d = await readJson(r);
@@ -64,13 +64,13 @@ export default function AdminCourse() {
     setMsg("Амжилттай устгагдлаа"); load();
   }
 
-  const fmt = (d) => (d ? String(d).slice(0, 10) : "");
+  const money = (v) => Number(v || 0).toLocaleString("en-US") + "₮";
 
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h3>Анги удирдах</h3>
-        <a href="/admin" className="btn btn-outline-secondary btn-sm">← Админ самбар</a>
+        <a href="/" className="btn btn-outline-secondary btn-sm">← Нүүр хуудас</a>
       </div>
 
       {err && <div className="alert alert-danger">{err}</div>}
@@ -82,25 +82,43 @@ export default function AdminCourse() {
           <div className="col-md-3">
             <select className="form-select" value={f.surgaltID} onChange={set("surgaltID")} required>
               <option value="">Сургалт сонгох</option>
-              {surgalts.map((s) => (
-                <option key={s.surgaltID} value={s.surgaltID}>{s.surgaltNer}</option>
-              ))}
+              {surgalts.map((s) => <option key={s.surgaltID} value={s.surgaltID}>{s.surgaltNer}</option>)}
             </select>
           </div>
-          <div className="col-md-2">
+          <div className="col-md-5">
+            <input className="form-control" placeholder="Ангийн нэр" value={f.courseName}
+                   onChange={set("courseName")} required />
+          </div>
+          <div className="col-md-4">
+            <input type="number" min="0" className="form-control" placeholder="Төлбөр (₮)"
+                   value={f.price} onChange={set("price")} required />
+          </div>
+          <div className="col-12">
+            <input className="form-control" placeholder="Дэлгэрэнгүй" value={f.courseDetails}
+                   onChange={set("courseDetails")} />
+          </div>
+          <div className="col-md-3">
+            <label className="form-label small text-muted mb-0">Эхлэх огноо</label>
             <input type="date" className="form-control" value={f.startDate}
                    onChange={set("startDate")} required />
           </div>
           <div className="col-md-3">
-            <input className="form-control" placeholder="Хуваарь (Даваа, Лхагва 18:00)"
-                   value={f.schedule} onChange={set("schedule")} required />
+            <label className="form-label small text-muted mb-0">Дуусах огноо</label>
+            <input type="date" className="form-control" value={f.finishDate}
+                   onChange={set("finishDate")} required />
           </div>
-          <div className="col-md-2">
-            <input type="number" min="1" className="form-control" placeholder="Багтаамж"
-                   value={f.capacity} onChange={set("capacity")} required />
+          <div className="col-md-3">
+            <label className="form-label small text-muted mb-0">Хугацаа</label>
+            <input className="form-control" placeholder="Жишээ: 1 сар" value={f.hugatsaa}
+                   onChange={set("hugatsaa")} />
           </div>
-          <div className="col-md-2 d-flex gap-1">
-            <button className="btn btn-success w-100">{f.id !== null ? "Хадгалах" : "Нэмэх"}</button>
+          <div className="col-md-3">
+            <label className="form-label small text-muted mb-0">Суудлын тоо</label>
+            <input type="number" min="1" className="form-control" value={f.suudalToo}
+                   onChange={set("suudalToo")} required />
+          </div>
+          <div className="col-12 d-flex gap-2">
+            <button className="btn btn-success">{f.id !== null ? "Хадгалах" : "Нэмэх"}</button>
             {f.id !== null && (
               <button type="button" className="btn btn-secondary" onClick={() => setF(EMPTY)}>Болих</button>
             )}
@@ -111,30 +129,32 @@ export default function AdminCourse() {
       <div className="table-responsive">
         <table className="table table-hover align-middle">
           <thead className="table-light">
-            <tr><th>#</th><th>Сургалт</th><th>Эхлэх</th><th>Хуваарь</th><th>Багтаамж</th><th>Төлөв</th><th></th></tr>
+            <tr><th>#</th><th>Сургалт</th><th>Ангийн нэр</th><th>Хугацаа</th>
+                <th>Төлбөр</th><th>Суудал</th><th>Төлөв</th><th></th></tr>
           </thead>
           <tbody>
             {list.map((c) => (
               <tr key={c.courseID}>
                 <td>{c.courseID}</td>
                 <td>{c.surgaltNer}</td>
-                <td>{fmt(c.startDate)}</td>
-                <td>{c.schedule}</td>
-                <td>{c.capacity}</td>
+                <td>{c.courseName}<div className="text-muted small">{c.courseDetails}</div></td>
+                <td className="text-nowrap">{c.startDate} → {c.finishDate}
+                  {c.hugatsaa ? <div className="text-muted small">{c.hugatsaa}</div> : null}</td>
+                <td className="text-nowrap">{money(c.price)}</td>
+                <td>{c.suudalToo}</td>
                 <td>
-                  <select className={`form-select form-select-sm border-${STATUS_COLOR[c.status] || "secondary"}`}
-                          style={{ minWidth: 150 }} value={c.status}
-                          onChange={(e) => changeStatus(c, e.target.value)}>
-                    {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </select>
+                  <button onClick={() => toggle(c)}
+                    className={`btn btn-sm ${Number(c.status) === 1 ? "btn-success" : "btn-secondary"}`}>
+                    {Number(c.status) === 1 ? "Идэвхтэй" : "Идэвхгүй"}
+                  </button>
                 </td>
                 <td className="text-end text-nowrap">
                   <button className="btn btn-sm btn-warning me-1"
                     onClick={() => { setErr(""); setMsg("");
-                      setF({ id: c.courseID, surgaltID: c.surgaltID, startDate: fmt(c.startDate),
-                             schedule: c.schedule || "", capacity: c.capacity }); }}>
+                      setF({ id: c.courseID, surgaltID: c.surgaltID, courseName: c.courseName || "",
+                             courseDetails: c.courseDetails || "", price: c.price,
+                             startDate: c.startDate || "", finishDate: c.finishDate || "",
+                             hugatsaa: c.hugatsaa ?? "", suudalToo: c.suudalToo }); }}>
                     Засах
                   </button>
                   <button className="btn btn-sm btn-danger" onClick={() => del(c)}>Устгах</button>
@@ -142,7 +162,7 @@ export default function AdminCourse() {
               </tr>
             ))}
             {list.length === 0 && (
-              <tr><td colSpan="7" className="text-center text-muted">Анги байхгүй байна</td></tr>
+              <tr><td colSpan="8" className="text-center text-muted">Анги байхгүй байна</td></tr>
             )}
           </tbody>
         </table>

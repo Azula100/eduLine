@@ -1,25 +1,36 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import s from "./shell.module.css";
-
 // ready:false = хуудас хараахан хийгдээгүй (хийсний дараа true болгоно)
 const MENU = [
-  { href: "/#surgalt", label: "Сургалт", roles: ["*"], ready: true },
-  { href: "/#classes", label: "Анги", roles: ["*"], ready: true },
+  { href: "/admin/surgalt", label: "Сургалт", roles: ["*"], ready: true },
+  { href: "/admin/course", label: "Анги", roles: ["*"], ready: true },
   { href: "/#teachers", label: "Багш нар", roles: ["*"], ready: true },
   { href: "/my", label: "Миний сургалтууд", roles: ["U"], ready: false },
   { href: "/requests", label: "Хүсэлтүүд", roles: ["A", "T"], ready: false },
   { href: "/students", label: "Суралцагч удирдах", roles: ["A", "T"], ready: false },
   { href: "/announcements", label: "Зарлал удирдах", roles: ["A", "T"], ready: false },
-  { href: "/admin/surgalt", label: "Сургалт удирдах", roles: ["A", "T"], ready: true },
-  { href: "/admin/course", label: "Анги удирдах", roles: ["A", "T"], ready: true },
 ];
 
 export default function AppShell({ children }) {
   const [me, setMe] = useState(null);
   const [stats, setStats] = useState(null);
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    const f = () => setHash(window.location.hash);
+    f();
+    window.addEventListener("hashchange", f);
+    return () => window.removeEventListener("hashchange", f);
+  }, []);
+
+  const isActive = (href) =>
+    href.startsWith("/#")
+      ? pathname === "/" && (hash || "#surgalt") === href.slice(1)
+      : pathname === href;
 
   useEffect(() => {
     fetch("/api/me").then((r) => r.json()).then(setMe).catch(() => setMe({ loggedIn: false }));
@@ -70,15 +81,19 @@ export default function AppShell({ children }) {
 
       <aside className={s.side}>
         <nav className={s.menu}>
-          {items.map((m) =>
-            m.ready ? (
-              <Link key={m.href} href={m.href} className={s.menuItem}>{m.label}</Link>
-            ) : (
-              <span key={m.href} className={`${s.menuItem} ${s.menuOff}`}>
-                {m.label}<span className={s.soon}>удахгүй</span>
-              </span>
-            )
-          )}
+          {items.map((m) => {
+            const cls = `${s.menuItem} ${isActive(m.href) ? s.menuActive : ""}`;
+            if (!m.ready)
+              return (
+                <span key={m.href} className={`${s.menuItem} ${s.menuOff}`}>
+                  {m.label}<span className={s.soon}>удахгүй</span>
+                </span>
+              );
+            // Нүүр хуудсан дээр байхад энгийн #холбоос: хуудас шилжихгүй, голын хэсэг л солигдоно
+            if (m.href.startsWith("/#") && pathname === "/")
+              return <a key={m.href} href={m.href.slice(1)} className={cls}>{m.label}</a>;
+            return <Link key={m.href} href={m.href} className={cls}>{m.label}</Link>;
+          })}
         </nav>
       </aside>
 

@@ -31,7 +31,7 @@
 .drop a:hover, .drop button:hover { background: #eaf2ff; }
 .linkBtn { color: #0d4bb5; font-weight: 700; text-decoration: none; font-size: 14px; }
 .pill { background: #0d4bb5; color: #fff !important; border-radius: 999px; padding: 8px 20px; }
-
+.menuActive { background: #eaf2ff; color: #0d4bb5; }
 @media (max-width: 800px) {
   .wrap { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto;
     grid-template-areas: "logo" "head" "side" "main" "foot" "foot"; }

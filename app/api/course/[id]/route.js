@@ -1,15 +1,15 @@
 import { requireRole, deny } from "@/lib/guard";
-import { editCourse, setCourseStatus, delCourse } from "@/lib/course";
+import { editCourse, setCourseStatus, delCourse, checkCourse, cleanCourse } from "@/lib/course";
 
-export async function PUT(req, { params }) {          // засах
+export async function PUT(req, { params }) {
   try {
     const s = await requireRole(["A", "T"]);
     if (!s) return deny();
     const { id } = await params;
     const b = await req.json();
-    if (!b.surgaltID || !b.startDate || !b.schedule?.trim() || !(Number(b.capacity) >= 1))
-      return Response.json({ error: "Бүх талбарыг зөв бөглөнө үү" }, { status: 400 });
-    const n = await editCourse(id, { ...b, capacity: Number(b.capacity) });
+    const bad = checkCourse(b);
+    if (bad) return Response.json({ error: bad }, { status: 400 });
+    const n = await editCourse(id, cleanCourse(b));
     return n ? Response.json({ ok: true })
              : Response.json({ error: "Анги олдсонгүй" }, { status: 404 });
   } catch (e) {
@@ -18,7 +18,7 @@ export async function PUT(req, { params }) {          // засах
   }
 }
 
-export async function PATCH(req, { params }) {        // төлөв өөрчлөх
+export async function PATCH(req, { params }) {          // төлөв өөрчлөх
   try {
     const s = await requireRole(["A", "T"]);
     if (!s) return deny();
@@ -32,7 +32,7 @@ export async function PATCH(req, { params }) {        // төлөв өөрчлө
   }
 }
 
-export async function DELETE(_req, { params }) {      // устгах
+export async function DELETE(_req, { params }) {
   try {
     const s = await requireRole(["A", "T"]);
     if (!s) return deny();
@@ -42,7 +42,7 @@ export async function DELETE(_req, { params }) {      // устгах
   } catch (e) {
     const fk = e.code === "ER_ROW_IS_REFERENCED_2";
     return Response.json(
-      { error: fk ? "Энэ ангид хүсэлт холбогдсон тул устгах боломжгүй. Төлвийг CLOSED болгоно уу"
+      { error: fk ? "Энэ ангид хүсэлт холбогдсон тул устгах боломжгүй. Төлвийг идэвхгүй болгоно уу"
                   : "Серверийн алдаа: " + e.message },
       { status: fk ? 409 : 500 });
   }
