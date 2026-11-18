@@ -1,28 +1,65 @@
 import { requireRole, deny } from "@/lib/guard";
-import { listCourse, addCourse, checkCourse, cleanCourse } from "@/lib/course";
+import { getCourse, editCourse, setCourseStatus, delCourse, seatError,
+         checkCourse, cleanCourse } from "@/lib/course";
 
-export async function GET() {
+export async function GET(_req, { params }) {
   try {
     const s = await requireRole(["A", "T", "U"]);
     if (!s) return deny();
-    return Response.json(await listCourse());
+    const { id } = await params;
+    const c = await getCourse(id);
+    if (!c || (s.userStatus === "U" && !Number(c.status)))
+      return Response.json({ error: "Анги олдсонгүй" }, { status: 404 });
+    return Response.json(c);
   } catch (e) {
-    console.error("COURSE LIST:", e);
+    console.error("COURSE GET:", e);
     return Response.json({ error: "Серверийн алдаа: " + e.message }, { status: 500 });
   }
 }
 
-export async function POST(req) {
+export async function PUT(req, { params }) {
   try {
     const s = await requireRole(["A", "T"]);
     if (!s) return deny();
+    const { id } = await params;
     const b = await req.json();
-    const bad = checkCourse(b);
+    const bad = checkCourse(b) || (await seatError(id, b.suudalToo));
     if (bad) return Response.json({ error: bad }, { status: 400 });
-    await addCourse(cleanCourse(b));
-    return Response.json({ ok: true }, { status: 201 });
+    const n = await editCourse(id, cleanCourse(b));
+    return n ? Response.json({ ok: true })
+             : Response.json({ error: "Анги олдсонгүй" }, { status: 404 });
   } catch (e) {
-    console.error("COURSE ADD:", e);
+    console.error("COURSE EDIT:", e);
     return Response.json({ error: "Серверийн алдаа: " + e.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req, { params }) {          // төлөв өөрчлөх
+  try {
+    const s = await requireRole(["A", "T"]);
+    if (!s) return deny();
+    const { id } = await params;
+    const { status } = await req.json();
+    const n = await setCourseStatus(id, status);
+    return n ? Response.json({ ok: true })
+             : Response.json({ error: "Анги олдсонгүй" }, { status: 404 });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 400 });
+  }
+}
+
+export async function DELETE(_req, { params }) {
+  try {
+    const s = await requireRole(["A", "T"]);
+    if (!s) return deny();
+    const { id } = await params;
+    await delCourse(id);
+    return Response.json({ ok: true });
+  } catch (e) {
+    const fk = e.code === "ER_ROW_IS_REFERENCED_2";
+    return Response.json(
+      { error: fk ? "Энэ ангид хүсэлт/зарлал холбогдсон тул устгах боломжгүй. Төлвийг идэвхгүй болгоно уу"
+                  : "Серверийн алдаа: " + e.message },
+      { status: fk ? 409 : 500 });
   }
 }

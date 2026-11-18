@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import CourseModal, { emptyForm, toForm } from "./CourseModal";
+import { api } from "./http";
 
 const COLORS = ["#2f6fe4", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
 const card = { background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 6px 20px rgba(13,75,181,.08)", height: "100%" };
@@ -49,6 +51,10 @@ export default function HomeContent() {
   const [me, setMe] = useState({ loggedIn: false });
   const [sel, setSel] = useState(null);
   const [err, setErr] = useState("");
+  const [mgr, setMgr] = useState(null);     // admin/teacher: бүх анги (идэвхгүй ч орно)
+  const [edit, setEdit] = useState(null);    // null = цонх хаалттай
+  const [msg, setMsg] = useState("");
+  const [tick, setTick] = useState(0);       // дахин ачаалах
 
   useEffect(() => {
     fetch("/api/me").then((r) => r.json()).then(setMe).catch(() => {});
@@ -68,10 +74,16 @@ export default function HomeContent() {
         setErr("Холболтын алдаа: " + e.message);
       }
     })();
-  }, []);
+  }, [tick]);
 
   const isMgr = me.loggedIn && ["A", "T"].includes(me.userStatus);
   const isAdmin = me.loggedIn && me.userStatus === "A";
+
+  useEffect(() => {
+    if (!isMgr) return;
+    api("/api/course").then((r) => r.ok && Array.isArray(r.data) && setMgr(r.data));
+  }, [isMgr, tick]);
+  const classList = isMgr && mgr ? mgr : d.classes;
   const selected = d.surgalt.find((x) => x.surgaltID === sel) || d.surgalt[0];
   const selClasses = selected ? d.classes.filter((c) => c.surgaltID === selected.surgaltID) : [];
 
@@ -154,27 +166,49 @@ export default function HomeContent() {
       {/* ===== АНГИ ===== */}
       {section === "classes" && (
         <section>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h2 style={h}>Зарлагдсан ангиуд (идэвхтэй)</h2>
-            {isMgr && <Link href="/admin/course" className="btn btn-sm btn-outline-primary">Анги удирдах</Link>}
+          <div className="mb-3">
+            <h2 style={h}>{isMgr ? "Ангиуд" : "Зарлагдсан ангиуд (идэвхтэй)"}</h2>
           </div>
+          {msg && <div className="alert alert-success">{msg}</div>}
           <div style={grid}>
-            {d.classes.map((c, i) => (
-              <div key={c.courseID} style={card}>
-                <Avatar text={c.surgaltNer || c.courseName} i={i} />
-                <h5 style={{ fontWeight: 700, marginTop: 12 }}>{c.courseName}</h5>
-                <div className="text-muted" style={{ fontSize: 13 }}>{c.surgaltNer}</div>
-                <p className="text-muted" style={{ fontSize: 14, marginTop: 8 }}>{c.courseDetails}</p>
-                <div style={{ fontSize: 14, lineHeight: 1.8 }}>
-                  <div>Хугацаа: {c.startDate} - {c.finishDate}</div>
-                  {c.hugatsaa ? <div>Үргэлжлэх: {c.hugatsaa}</div> : null}
-                  <div>Суудлын тоо: <Seats c={c} /></div>
-                  <div>Төлбөр: {money(c.price)}</div>
-                </div>
-                <div className="mt-3"><RequestBtn c={c} /></div>
+            {isMgr && (
+              <div onClick={() => { setMsg(""); setEdit(emptyForm()); }}
+                   style={{ ...card, cursor: "pointer", border: "2px dashed #9fb0cc", boxShadow: "none",
+                            display: "grid", placeItems: "center", minHeight: 180, color: "#0d4bb5", fontWeight: 800 }}>
+                + Анги нэмэх
               </div>
-            ))}
-            {d.classes.length === 0 && <p className="text-muted">Зарлагдсан анги байхгүй байна</p>}
+            )}
+            {classList.map((c, i) => {
+              const on = c.status === undefined || Number(c.status) === 1;
+              return (
+                <div key={c.courseID}
+                     style={{ ...card, cursor: isMgr ? "pointer" : "default", opacity: on ? 1 : 0.6 }}
+                     onClick={isMgr ? () => { setMsg(""); setEdit(toForm(c)); } : undefined}>
+                  <div className="d-flex justify-content-between align-items-start">
+                    <Avatar text={c.surgaltNer || c.courseName} i={i} />
+                    {isMgr && (
+                      <span className="badge" style={{ background: on ? "#16a34a" : "#9fb0cc" }}>
+                        {on ? "Идэвхтэй" : "Идэвхгүй"}
+                      </span>
+                    )}
+                  </div>
+                  <h5 style={{ fontWeight: 700, marginTop: 12 }}>{c.courseName}</h5>
+                  <div className="text-muted" style={{ fontSize: 13 }}>{c.surgaltNer}</div>
+                  <p className="text-muted" style={{ fontSize: 14, marginTop: 8 }}>{c.courseDetails}</p>
+                  <div style={{ fontSize: 14, lineHeight: 1.8 }}>
+                    <div>Хугацаа: {c.startDate} - {c.finishDate}</div>
+                    {c.huvaari ? <div>Хуваарь: {c.huvaari}</div> : null}
+                    {c.hugatsaa ? <div>Үргэлжлэх: {c.hugatsaa}</div> : null}
+                    <div>Суудлын тоо: <Seats c={c} /></div>
+                    <div>Төлбөр: {money(c.price)}</div>
+                  </div>
+                  {isMgr
+                    ? <div className="mt-3" style={{ color: "#16a34a", fontWeight: 700, fontSize: 13 }}>[УДИРДАХ]</div>
+                    : <div className="mt-3"><RequestBtn c={c} /></div>}
+                </div>
+              );
+            })}
+            {classList.length === 0 && !isMgr && <p className="text-muted">Зарлагдсан анги байхгүй байна</p>}
           </div>
         </section>
       )}
@@ -200,6 +234,12 @@ export default function HomeContent() {
             {d.teachers.length === 0 && <p className="text-muted">Багш бүртгэгдээгүй байна</p>}
           </div>
         </section>
+      )}
+
+      {edit && isMgr && (
+        <CourseModal init={edit} surgalts={d.surgalt}
+          onClose={() => setEdit(null)}
+          onDone={(m) => { setEdit(null); setMsg(m); setTick((x) => x + 1); }} />
       )}
     </div>
   );
