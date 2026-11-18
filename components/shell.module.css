@@ -8,6 +8,8 @@
   gap: 18px; padding: 0 24px; border-bottom: 1px solid #e3ecf8; position: relative; }
 .side { grid-area: side; background: #fff; border-right: 1px solid #e3ecf8; padding: 18px 12px; }
 .menu { display: grid; gap: 4px; }
+.menuActive { background: #eaf2ff; color: #0d4bb5; }
+.menuGreen { color: #16a34a; text-decoration: underline; }
 .menuItem { display: block; padding: 10px 14px; border-radius: 10px; color: #0d2a6b; text-decoration: none;
   font-size: 14px; font-weight: 600; }
 .menuItem:hover { background: #eaf2ff; color: #0d4bb5; }
