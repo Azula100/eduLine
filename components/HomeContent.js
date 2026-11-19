@@ -187,12 +187,11 @@ export default function HomeContent() {
           <div>Суудлын тоо: <Seats c={c} /></div>
           <div>Төлбөр: {money(c.price)}</div>
         </div>
-        {/* Товч үргэлж card-ын доод талд */}
-        <div style={{ marginTop: "auto", paddingTop: 16 }}>
-          {isMgr
-            ? <div style={{ color: "#16a34a", fontWeight: 700, fontSize: 13 }}>[УДИРДАХ]</div>
-            : <RequestBtn c={c} block />}
-        </div>
+        {!isMgr && (
+          <div style={{ marginTop: "auto", paddingTop: 16 }}>
+            <RequestBtn c={c} block />
+          </div>
+        )}
       </div>
     );
   };

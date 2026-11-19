@@ -6,10 +6,8 @@ import { api } from "./http";
 const DAYS = ["Да", "Мя", "Лх", "Пү", "Ба", "Бя", "Ня"];
 const lbl = { fontSize: 12, fontWeight: 700, color: "#6b7fa3", textTransform: "uppercase", letterSpacing: 0.5 };
 
-// 150000 -> "150.000" (тоо бичихэд автоматаар цэгээр таслагдана)
 const fmtMoney = (v) => String(v ?? "").replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
-// Талбарын аль ч хэсэг дээр дарахад календарь нээгдэнэ (зөвхөн icon биш)
 function DateField({ value, onChange, min }) {
   return (
     <input type="date" className="form-control" value={value} min={min} required
@@ -18,7 +16,6 @@ function DateField({ value, onChange, min }) {
   );
 }
 
-// 24 цагийн систем (AM/PM байхгүй): 09 : 00, 15 : 30, 21 : 00
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINS = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"));
 function TimeField({ value, onChange }) {
@@ -37,7 +34,6 @@ function TimeField({ value, onChange }) {
   );
 }
 
-// "Да, Лх, Ба · 18:00–20:00" <-> { days, from, to }
 function parseHuvaari(s) {
   const out = { days: [], from: "18:00", to: "20:00" };
   if (!s) return out;
@@ -49,20 +45,21 @@ function parseHuvaari(s) {
 const buildHuvaari = (f) => `${DAYS.filter((d) => f.days.includes(d)).join(", ")} · ${f.from}–${f.to}`;
 
 export const emptyForm = () => ({
-  id: null, surgaltID: "", courseName: "", courseDetails: "", status: 1,
+  id: null, surgaltID: "", courseName: "", courseDetails: "", status: 1, regOpen: "Y",
   startDate: "", finishDate: "", days: [], from: "18:00", to: "20:00",
   price: "", suudalToo: "", hugatsaa: "", approved: 0,
 });
 
 export const toForm = (c) => ({
   id: c.courseID, surgaltID: c.surgaltID, courseName: c.courseName || "",
-  courseDetails: c.courseDetails || "", status: c.status === undefined ? 1 : Number(c.status),
+  courseDetails: c.courseDetails || "",
+  status: c.status === undefined ? 1 : Number(c.status),
+  regOpen: c.regOpen === "N" ? "N" : "Y",
   startDate: c.startDate || "", finishDate: c.finishDate || "", ...parseHuvaari(c.huvaari),
   price: c.price ?? "", suudalToo: c.suudalToo ?? "", hugatsaa: c.hugatsaa ?? "",
   approved: Number(c.approvedCount || 0),
 });
 
-// Ангийн мэдээлэл нэмэх / засах / устгах (admin, teacher)
 export default function CourseModal({ init, surgalts, onClose, onDone }) {
   const [f, setF] = useState(init);
   const [err, setErr] = useState("");
@@ -72,7 +69,6 @@ export default function CourseModal({ init, surgalts, onClose, onDone }) {
   const toggleDay = (d) =>
     setF({ ...f, days: f.days.includes(d) ? f.days.filter((x) => x !== d) : [...f.days, d] });
 
-  // Баталгаажуулах
   async function save(e) {
     e.preventDefault(); setErr("");
     if (!f.surgaltID) return setErr("Сургалтаа сонгоно уу");
@@ -83,7 +79,7 @@ export default function CourseModal({ init, surgalts, onClose, onDone }) {
     setBusy(true);
     const r = await api(f.id ? `/api/course/${f.id}` : "/api/course", f.id ? "PUT" : "POST",
       { surgaltID: f.surgaltID, courseName: f.courseName, courseDetails: f.courseDetails,
-        status: f.status, startDate: f.startDate, finishDate: f.finishDate,
+        status: f.status, regOpen: f.regOpen, startDate: f.startDate, finishDate: f.finishDate,
         huvaari: buildHuvaari(f), price: f.price, suudalToo: f.suudalToo, hugatsaa: f.hugatsaa });
     setBusy(false);
     if (!r.ok) return setErr(r.data.error || `Алдаа (${r.status})`);
@@ -117,12 +113,23 @@ export default function CourseModal({ init, surgalts, onClose, onDone }) {
           <input className="form-control" maxLength={45} value={f.courseName} onChange={set("courseName")} required />
         </div>
 
-        <div className="d-flex justify-content-between align-items-center">
-          <div style={lbl}>Төлөв</div>
-          <div className="form-check form-switch m-0">
-            <input className="form-check-input" type="checkbox" role="switch" id="st" checked={!!f.status}
-                   onChange={(e) => setF({ ...f, status: e.target.checked ? 1 : 0 })} />
-            <label className="form-check-label" htmlFor="st">{f.status ? "Идэвхтэй" : "Идэвхгүй"}</label>
+        <div className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+          <div className="d-flex align-items-center gap-2">
+            <span style={lbl}>Төлөв</span>
+            <div className="form-check form-switch m-0">
+              <input className="form-check-input" type="checkbox" role="switch" id="st" checked={!!f.status}
+                     onChange={(e) => setF({ ...f, status: e.target.checked ? 1 : 0 })} />
+              <label className="form-check-label" htmlFor="st">{f.status ? "Идэвхтэй" : "Идэвхгүй"}</label>
+            </div>
+          </div>
+
+          <div className="d-flex align-items-center gap-2">
+            <span style={lbl}>Бүртгэл</span>
+            <div className="form-check form-switch m-0">
+              <input className="form-check-input" type="checkbox" role="switch" id="reg" checked={f.regOpen !== "N"}
+                     onChange={(e) => setF({ ...f, regOpen: e.target.checked ? "Y" : "N" })} />
+              <label className="form-check-label" htmlFor="reg">{f.regOpen !== "N" ? "Нээлттэй" : "Хаалттай"}</label>
+            </div>
           </div>
         </div>
 
@@ -157,7 +164,7 @@ export default function CourseModal({ init, surgalts, onClose, onDone }) {
           <div className="col-6">
             <div style={lbl}>Төлбөр (₮)</div>
             <div className="input-group">
-              <input inputMode="numeric" className="form-control" placeholder="150.000" required
+              <input inputMode="numeric" className="form-control" required
                      value={fmtMoney(f.price)}
                      onChange={(e) => setF({ ...f, price: e.target.value.replace(/\D/g, "") })} />
               <span className="input-group-text">₮</span>
