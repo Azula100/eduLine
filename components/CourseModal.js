@@ -6,6 +6,37 @@ import { api } from "./http";
 const DAYS = ["Да", "Мя", "Лх", "Пү", "Ба", "Бя", "Ня"];
 const lbl = { fontSize: 12, fontWeight: 700, color: "#6b7fa3", textTransform: "uppercase", letterSpacing: 0.5 };
 
+// 150000 -> "150.000" (тоо бичихэд автоматаар цэгээр таслагдана)
+const fmtMoney = (v) => String(v ?? "").replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+// Талбарын аль ч хэсэг дээр дарахад календарь нээгдэнэ (зөвхөн icon биш)
+function DateField({ value, onChange, min }) {
+  return (
+    <input type="date" className="form-control" value={value} min={min} required
+           onChange={onChange} style={{ cursor: "pointer" }}
+           onClick={(e) => { try { e.currentTarget.showPicker?.(); } catch {} }} />
+  );
+}
+
+// 24 цагийн систем (AM/PM байхгүй): 09 : 00, 15 : 30, 21 : 00
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINS = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"));
+function TimeField({ value, onChange }) {
+  const [h, m] = (value || "00:00").split(":");
+  const mins = MINS.includes(m) ? MINS : [...MINS, m].sort();
+  return (
+    <div className="d-flex align-items-center gap-1" style={{ flex: 1 }}>
+      <select className="form-select" value={h} onChange={(e) => onChange(`${e.target.value}:${m}`)}>
+        {HOURS.map((x) => <option key={x} value={x}>{x}</option>)}
+      </select>
+      <b>:</b>
+      <select className="form-select" value={m} onChange={(e) => onChange(`${h}:${e.target.value}`)}>
+        {mins.map((x) => <option key={x} value={x}>{x}</option>)}
+      </select>
+    </div>
+  );
+}
+
 // "Да, Лх, Ба · 18:00–20:00" <-> { days, from, to }
 function parseHuvaari(s) {
   const out = { days: [], from: "18:00", to: "20:00" };
@@ -98,11 +129,11 @@ export default function CourseModal({ init, surgalts, onClose, onDone }) {
         <div className="row g-2">
           <div className="col-6">
             <div style={lbl}>Эхлэх огноо</div>
-            <input type="date" className="form-control" value={f.startDate} onChange={set("startDate")} required />
+            <DateField value={f.startDate} onChange={set("startDate")} />
           </div>
           <div className="col-6">
             <div style={lbl}>Дуусах огноо</div>
-            <input type="date" className="form-control" value={f.finishDate} min={f.startDate} onChange={set("finishDate")} required />
+            <DateField value={f.finishDate} min={f.startDate} onChange={set("finishDate")} />
           </div>
         </div>
 
@@ -116,16 +147,21 @@ export default function CourseModal({ init, surgalts, onClose, onDone }) {
             ))}
           </div>
           <div className="d-flex gap-2 align-items-center">
-            <input type="time" className="form-control" value={f.from} onChange={set("from")} required />
+            <TimeField value={f.from} onChange={(v) => setF({ ...f, from: v })} />
             <span>–</span>
-            <input type="time" className="form-control" value={f.to} onChange={set("to")} required />
+            <TimeField value={f.to} onChange={(v) => setF({ ...f, to: v })} />
           </div>
         </div>
 
         <div className="row g-2">
           <div className="col-6">
             <div style={lbl}>Төлбөр (₮)</div>
-            <input type="number" min="0" step="1" className="form-control" value={f.price} onChange={set("price")} required />
+            <div className="input-group">
+              <input inputMode="numeric" className="form-control" placeholder="150.000" required
+                     value={fmtMoney(f.price)}
+                     onChange={(e) => setF({ ...f, price: e.target.value.replace(/\D/g, "") })} />
+              <span className="input-group-text">₮</span>
+            </div>
           </div>
           <div className="col-6">
             <div style={lbl}>Суудлын тоо</div>

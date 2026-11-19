@@ -9,7 +9,7 @@ const card = { background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 
 const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 18 };
 const h = { fontSize: 18, fontWeight: 800, textTransform: "uppercase", color: "#0d3a8c", margin: 0 };
 
-const money = (v) => Number(v || 0).toLocaleString("en-US") + "₮";
+const money = (v) => Number(v || 0).toLocaleString("de-DE") + "₮";   // 150.000₮
 const approved = (c) => Number(c.approvedCount ?? 0);
 const total = (c) => Number(c.suudalToo ?? 0);
 const isFull = (c) => total(c) > 0 && approved(c) >= total(c);

@@ -1,5 +1,21 @@
 import { requireRole, deny } from "@/lib/guard";
-import { editCourse, setCourseStatus, delCourse, checkCourse, cleanCourse } from "@/lib/course";
+import { getCourse, editCourse, setCourseStatus, delCourse, seatError,
+         checkCourse, cleanCourse } from "@/lib/course";
+
+export async function GET(_req, { params }) {
+  try {
+    const s = await requireRole(["A", "T", "U"]);
+    if (!s) return deny();
+    const { id } = await params;
+    const c = await getCourse(id);
+    if (!c || (s.userStatus === "U" && !Number(c.status)))
+      return Response.json({ error: "Анги олдсонгүй" }, { status: 404 });
+    return Response.json(c);
+  } catch (e) {
+    console.error("COURSE GET:", e);
+    return Response.json({ error: "Серверийн алдаа: " + e.message }, { status: 500 });
+  }
+}
 
 export async function PUT(req, { params }) {
   try {
@@ -7,7 +23,7 @@ export async function PUT(req, { params }) {
     if (!s) return deny();
     const { id } = await params;
     const b = await req.json();
-    const bad = checkCourse(b);
+    const bad = checkCourse(b) || (await seatError(id, b.suudalToo));
     if (bad) return Response.json({ error: bad }, { status: 400 });
     const n = await editCourse(id, cleanCourse(b));
     return n ? Response.json({ ok: true })
@@ -42,7 +58,7 @@ export async function DELETE(_req, { params }) {
   } catch (e) {
     const fk = e.code === "ER_ROW_IS_REFERENCED_2";
     return Response.json(
-      { error: fk ? "Энэ ангид хүсэлт холбогдсон тул устгах боломжгүй. Төлвийг идэвхгүй болгоно уу"
+      { error: fk ? "Энэ ангид хүсэлт/зарлал холбогдсон тул устгах боломжгүй. Төлвийг идэвхгүй болгоно уу"
                   : "Серверийн алдаа: " + e.message },
       { status: fk ? 409 : 500 });
   }
